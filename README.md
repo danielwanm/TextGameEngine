@@ -14,18 +14,6 @@ Built in TypeScript (strict) on Vite, with zero runtime dependencies.
 npm install
 npm run dev
 ```
-
-Then open the URL Vite prints. Click **Start Game** to play the bundled sample
-story (`src/game.txt`).
-
-To play your own script, replace `src/game.txt` — or point `parser.ts` at
-`src/examples/labyrinth.txt` to try the second included example.
-
-```bash
-npm run build   # typecheck + production bundle into dist/
-npm run lint    # eslint
-```
-
 ---
 
 ## Writing a story
