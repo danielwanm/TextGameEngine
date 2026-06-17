@@ -1,10 +1,100 @@
-# textGameEngine
+# TextGameEngine
 
-A tiny text-adventure engine for the browser. Write a story in a small custom DSL,
-and the engine parses it into a typed graph and plays it back as a typewriter-style
-visual novel — branching choices, text-input puzzles, and background swaps included.
+A browser-based engine for building branching, visual-novel-style text adventures.
+You write a story in a small custom scripting language, and the engine compiles it
+into a typed scene graph and plays it back as a typewriter-style game — complete
+with branching choices, free-text input puzzles, character sprites, speech bubbles,
+and background swaps.
 
-Built in TypeScript (strict) on Vite, with zero runtime dependencies.
+Built in strict TypeScript on Vite, with **zero runtime dependencies**.
+
+---
+
+## Demo
+
+> _Demo coming soon._
+
+<!-- TODO: add a GIF / screen recording and a link to the live deployment here -->
+
+---
+
+## Technical Specification
+
+### Scene graph
+
+The heart of the engine is a **directed graph of story nodes**. Parsing a script
+produces a single `Game` object whose `nodes` field is a `Record<string, Node>` —
+an adjacency-list representation where every node is addressable by id and edges
+are stored as id references rather than object pointers.
+
+```ts
+interface Game {
+  title: string;
+  head: string;                          // entry node — where playback starts
+  characters: Record<string, Character>;
+  narratorId: string | null;
+  backgrounds: Record<string, string>;
+  nodes: Record<string, Node>;           // the graph itself
+}
+
+interface Node {
+  nodeId: string;
+  lines: DialogLine[];                    // ordered dialog played in sequence
+  options: Option[];                      // choice edges → next node
+  expectedInputContains?: string;         // input-puzzle edge (matched substring)
+  inputNext?: string;                     // edge taken on correct input
+  wrongInputNext?: string;                // edge taken on incorrect input
+  changeBackground?: string;
+}
+```
+
+Each `Node` carries an ordered list of dialog lines plus its **outgoing edges**:
+
+- **Choice edges** — every `Option` holds the displayed label and a `next` node id,
+  rendered at runtime as a button.
+- **Input-puzzle edges** — a node can branch on free-text input: a correct substring
+  match routes to `inputNext`, anything else routes to `wrongInputNext`. This lets a
+  single node fork the graph two ways without buttons.
+
+Because edges are plain string ids, the graph can contain **cycles** (e.g. a "wrong
+answer" node looping back to retry) with no special handling — traversal just looks
+up the next id in the `nodes` map.
+
+### Parser
+
+`src/parser.ts` is a **single-pass, line-oriented parser** (~160 lines, no parser
+generator). It walks the script top to bottom, dispatching on each line's prefix:
+
+- **Header directives** (`@title`, `@character`, `@narrator`, `@background`)
+  populate the character and background registries.
+- **Node bodies** accumulate dialog lines, choice options, input puzzles, and
+  background changes onto the *current* node; a `::nodeId` header commits the
+  previous node and opens a new one.
+
+The parser validates as it goes — unknown speakers, malformed options, missing
+`START` node, and unresolved images all throw with descriptive errors, so a broken
+script fails fast at parse time rather than mid-playback.
+
+### Asset resolution
+
+Scripts reference images by plain filename (e.g. `hero_idle.png`). At build time the
+parser resolves these through Vite's `import.meta.glob`, so all art under
+`src/images/` is **bundled, fingerprinted, and tree-shaken** by Vite even though the
+script only names assets as strings.
+
+### Runtime
+
+`src/main.ts` drives playback as an **async render loop**. For each node it shows the
+correct sprite, typewrites the text, `await`s a click to advance, then renders the
+node's outgoing edges as buttons or an input box and `await`s the player's choice
+before walking to the next node id. Modeling every "wait for the player" as an
+`await` keeps the control flow linear and readable top-to-bottom.
+
+### Stack
+
+- **TypeScript 5** (strict mode, zero runtime dependencies)
+- **Vite 7** — dev server, bundling, and asset pipeline
+- **ESLint 9** + `typescript-eslint`
 
 ---
 
@@ -14,12 +104,13 @@ Built in TypeScript (strict) on Vite, with zero runtime dependencies.
 npm install
 npm run dev
 ```
+
 ---
 
 ## Writing a story
 
-A script is plain text. Header directives declare characters and assets;
-node blocks declare scenes, dialog, and transitions.
+A script is plain text. Header directives declare characters and assets; node blocks
+declare scenes, dialog, and transitions.
 
 ### Directives (top of file)
 
@@ -76,36 +167,3 @@ guide: Then go in peace.
 guide: ...try again.
 -? map -> home / lost
 ```
-
----
-
-## How it works
-
-Three files, ~400 lines total.
-
-- **`src/types.ts`** — the data model. `Game` is a `head` node id plus a
-  `Record<string, Node>`; each `Node` carries an ordered list of `DialogLine`s,
-  the `Option`s the player can pick, and an optional input puzzle.
-- **`src/parser.ts`** — a single-pass parser that walks the script line-by-line.
-  Header directives populate the character / background registries; node bodies
-  push lines and options onto the current node. Image references are resolved
-  through `import.meta.glob`, so Vite bundles and fingerprints assets at build
-  time even though the script names them as plain strings.
-- **`src/main.ts`** — the runtime. On start it parses the script, dynamically
-  injects one sprite pair + one speech bubble per declared character, then drives
-  an async render loop: for each line it shows the right sprite, typewrites the
-  text, awaits a click, then advances. At node boundaries it renders option
-  buttons or an input box and `await`s the player's choice before walking to the
-  next node.
-
-The async-loop shape means control flow reads top-to-bottom — every "wait for
-something" is just an `await`.
-
----
-
-
-## Tech stack
-
-- TypeScript 5 (strict, no runtime deps)
-- Vite 7
-- ESLint 9 + `typescript-eslint`
