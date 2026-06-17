@@ -1,21 +1,7 @@
-# ----------------------------------------------------------------------------
-# Sample game: "The Wayfarer's Trial"
-#
-# This script demonstrates every feature of the engine:
-#   - title and background declarations
-#   - two characters on opposite sides
-#   - a narrator (no sprite, full-width text box)
-#   - multi-line nodes with sequential speakers
-#   - branching options
-#   - text-input puzzles with right/wrong branches
-#   - mid-game background changes
-#   - a terminal node
-# ----------------------------------------------------------------------------
-
 @title The Wayfarer's Trial
 
 @character hero    right danielNotTalking.png danielTalking.png
-@character witch   left  melNotTalking.png    melTalking.png
+@character guard   left  melNotTalking.png    melTalking.png
 @narrator narrator
 
 @background day     cloudyBackground.png
@@ -23,55 +9,43 @@
 @background sunrise sunriseBackground.png
 
 
-# --- Opening: narrator-only node sets the scene ---------------------------
 ::open START
 cb day
 * A traveler crests the final hill. The road ends at an old stone arch.
 --Step through the arch -> meet
 
-
-# --- A node with two speakers in sequence (click to advance between) ----
 ::meet
 cb night
-@witch
+@guard
 hero: Who's there? I thought this place was abandoned.
-witch: Abandoned, perhaps. Unguarded — never.
+guard: Abandoned, perhaps. Unguarded — never.
 --Ask who she is        -> identify
 --Draw your sword       -> hostile
 
-
-# --- Branching: choosing 'identify' leads to a puzzle -------------------
 ::identify
-witch: I am the keeper of this gate. Answer my riddle and you may pass.
-* The witch raises a withered hand.
+guard: I am the keeper of this gate. Answer my riddle and you may pass.
+* The guard raises her hand.
 --I'll try -> riddle
 
-
-# --- Input puzzle: matches if answer CONTAINS "compass" -----------------
 ::riddle
-witch: I guide but never speak, I move but have no feet. What am I?
--? compass -> passed / wrongAnswer
+guard: Ok ill give you an easy one whats color is the sea
+-? blue -> passed / wrongAnswer
 
 
 ::wrongAnswer
-witch: No. Think again, traveler.
--? compass -> passed / wrongAnswer
+guard: No. Think again, traveler.
+-? blue -> passed / wrongAnswer
 
-
-# --- The other branch: hostility loops back to the puzzle ---------------
 ::hostile
-witch: Foolish. Steel cannot answer what the gate asks.
+guard: Foolish. Steel cannot answer what the gate asks.
 --Lower your weapon -> identify
 
-
-# --- Success path: background change + terminal node -------------------
 ::passed
 cb sunrise
-witch: Correct. The needle, the lodestone, the silent guide.
+guard: Correct. The needle, the lodestone, the silent guide.
 hero: Then the road is mine?
-witch: For now.
+guard: For now.
 --Walk on -> ending
-
 
 ::ending
 * Dawn breaks. The arch fades behind you as the next valley opens below.

@@ -24,6 +24,10 @@ interface CharacterDOM {
 
 const characterDom = new Map<string, CharacterDOM>();
 
+// Characters that have been introduced and should stay on screen (as idle
+// sprites, without a speech bubble) even when someone else is talking.
+const onStage = new Set<string>();
+
 startButton.addEventListener('click', async () => {
   const game = parseGameScript();
   if (game.title) {
@@ -72,7 +76,7 @@ async function runGame(game: Game) {
     await renderNode(current, game);
     const nextId = await waitForChoice(current);
     if (!nextId) break;
-    hideAll(game);
+    clearTransient();
     current = game.nodes[nextId];
   }
   hideAll(game);
@@ -88,16 +92,20 @@ async function renderNode(node: Node, game: Game) {
     appContainer.style.backgroundImage = `url(${node.changeBackground})`;
   }
 
-  const visibleIdle = new Set<string>();
+  // Keep everyone who's already been introduced on screen as an idle sprite.
+  for (const id of onStage) {
+    characterDom.get(id)?.idle.classList.remove('hidden');
+  }
+
   for (let i = 0; i < node.lines.length; i++) {
     const line = node.lines[i];
     const isLast = i === node.lines.length - 1;
-    await playLine(line, game, visibleIdle);
+    await playLine(line, game);
     if (!isLast && line.text) await waitForClick();
   }
 }
 
-async function playLine(line: DialogLine, game: Game, visibleIdle: Set<string>) {
+async function playLine(line: DialogLine, game: Game) {
   const id = line.speakerId;
   if (!id) return;
 
@@ -111,21 +119,22 @@ async function playLine(line: DialogLine, game: Game, visibleIdle: Set<string>) 
   const dom = characterDom.get(id);
   if (!dom) return;
 
-  // Sprite-only (no text): show idle, keep it visible across subsequent lines.
+  // Sprite-only (no text): show idle and keep the character on stage.
   if (!line.text) {
     dom.idle.classList.remove('hidden');
-    visibleIdle.add(id);
+    onStage.add(id);
     return;
   }
 
-  // Hide every other character's talking sprite and bubble.
+  // Hide every other character's talking sprite and bubble, but leave anyone
+  // already on stage visible as an idle sprite.
   for (const [otherId, other] of characterDom) {
     if (otherId === id) continue;
     other.talking.classList.add('hidden');
     other.bubble.classList.add('hidden');
     other.textBox.classList.add('hidden');
     other.textBox.textContent = '';
-    if (visibleIdle.has(otherId)) other.idle.classList.remove('hidden');
+    if (onStage.has(otherId)) other.idle.classList.remove('hidden');
   }
 
   dom.idle.classList.add('hidden');
@@ -133,7 +142,7 @@ async function playLine(line: DialogLine, game: Game, visibleIdle: Set<string>) 
   dom.bubble.classList.remove('hidden');
   dom.textBox.classList.remove('hidden');
   await typeText(line.text, dom.textBox);
-  visibleIdle.add(id);
+  onStage.add(id);
 }
 
 function waitForChoice(node: Node): Promise<string> {
@@ -173,6 +182,25 @@ function waitForInput(expected: string, okNext: string, badNext: string): Promis
   });
 }
 
+// Clear between nodes: drop talking sprites, bubbles, text and controls, but
+// keep on-stage characters present as idle sprites.
+function clearTransient() {
+  for (const [id, dom] of characterDom) {
+    dom.talking.classList.add('hidden');
+    dom.bubble.classList.add('hidden');
+    dom.textBox.classList.add('hidden');
+    dom.textBox.textContent = '';
+    if (onStage.has(id)) dom.idle.classList.remove('hidden');
+    else dom.idle.classList.add('hidden');
+  }
+  narratorTextBox.classList.add('hidden');
+  narratorTextBox.textContent = '';
+  gameButtonDiv.innerHTML = '';
+  inputBoxDiv.innerHTML = '';
+  inputBoxDiv.classList.add('hidden');
+}
+
+// Full reset, used when the game ends.
 function hideAll(game: Game) {
   for (const dom of characterDom.values()) {
     dom.idle.classList.add('hidden');
@@ -181,6 +209,7 @@ function hideAll(game: Game) {
     dom.textBox.classList.add('hidden');
     dom.textBox.textContent = '';
   }
+  onStage.clear();
   narratorTextBox.classList.add('hidden');
   narratorTextBox.textContent = '';
   gameButtonDiv.innerHTML = '';
