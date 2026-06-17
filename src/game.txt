@@ -1,4 +1,4 @@
-@title The Wayfarer's Trial
+@title
 
 @character hero    right danielNotTalking.png danielTalking.png
 @character guard   left  melNotTalking.png    melTalking.png
