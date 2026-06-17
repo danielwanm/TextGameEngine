@@ -59,8 +59,8 @@ guard: For now.
 ::ending
 * Dawn breaks. The arch fades behind you as the next valley opens below.
 :!
-Renders to following game:
 ```
+Renders to following game:
 [Game](https://text-game-engine-mb3a135no-danielwanms-projects.vercel.app/)
 
 
