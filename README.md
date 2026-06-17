@@ -5,10 +5,64 @@ Write a branching text adventure in a simple scripting language and play it in t
 ---
 
 ## Demo
+User writes a script like:
+```txt
+@title
 
-> _Demo coming soon._
+@character hero    right danielNotTalking.png danielTalking.png
+@character guard   left  melNotTalking.png    melTalking.png
+@narrator narrator
 
-<!-- TODO: add a GIF / screen recording and a link to the live deployment here -->
+@background day     cloudyBackground.png
+@background night   nightBackground.png
+@background sunrise sunriseBackground.png
+
+
+::open START
+cb day
+* A traveler crests the final hill. The road ends at an old stone arch.
+--Step through the arch -> meet
+
+::meet
+cb night
+@guard
+hero: Who's there? I thought this place was abandoned.
+guard: Abandoned, perhaps. Unguarded — never.
+--Ask who she is        -> identify
+--Draw your sword       -> hostile
+
+::identify
+guard: I am the keeper of this gate. Answer my riddle and you may pass.
+* The guard raises her hand.
+--I'll try -> riddle
+
+::riddle
+guard: Ok ill give you an easy one whats color is the sea
+-? blue -> passed / wrongAnswer
+
+
+::wrongAnswer
+guard: No. Think again, traveler.
+-? blue -> passed / wrongAnswer
+
+::hostile
+guard: Foolish. Steel cannot answer what the gate asks.
+--Lower your weapon -> identify
+
+::passed
+cb sunrise
+guard: Correct. The needle, the lodestone, the silent guide.
+hero: Then the road is mine?
+guard: For now.
+--Walk on -> ending
+
+::ending
+* Dawn breaks. The arch fades behind you as the next valley opens below.
+:!
+Renders to following game:
+```
+[Game](https://text-game-engine-mb3a135no-danielwanms-projects.vercel.app/)
+
 
 ---
 
