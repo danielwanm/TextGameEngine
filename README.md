@@ -1,10 +1,22 @@
-# textGameEngine
+# TextGameEngine
 
-A tiny text-adventure engine for the browser. Write a story in a small custom DSL,
-and the engine parses it into a typed graph and plays it back as a typewriter-style
-visual novel — branching choices, text-input puzzles, and background swaps included.
+Write a branching text adventure in a simple scripting language and play it in the browser as a visual novel.
 
-Built in TypeScript (strict) on Vite, with zero runtime dependencies.
+---
+
+## Demo
+
+> _Demo coming soon._
+
+<!-- TODO: add a GIF / screen recording and a link to the live deployment here -->
+
+---
+
+## Technical Specification
+
+- **Scene graph** — a script compiles into a directed graph of story nodes (`Record<string, Node>`), where edges are node-id references for both menu choices and free-text input puzzles, so branches and loops are just id lookups.
+- **Parser** — a single-pass, line-oriented parser turns the scripting language into the typed graph, validating speakers, options, and assets as it goes so broken scripts fail fast.
+- **Runtime** — playback runs as an async render loop that types out each line, `await`s the player's click or choice, then walks to the next node id.
 
 ---
 
@@ -14,12 +26,13 @@ Built in TypeScript (strict) on Vite, with zero runtime dependencies.
 npm install
 npm run dev
 ```
+
 ---
 
 ## Writing a story
 
-A script is plain text. Header directives declare characters and assets;
-node blocks declare scenes, dialog, and transitions.
+A script is plain text. Header directives declare characters and assets; node blocks
+declare scenes, dialog, and transitions.
 
 ### Directives (top of file)
 
@@ -76,36 +89,3 @@ guide: Then go in peace.
 guide: ...try again.
 -? map -> home / lost
 ```
-
----
-
-## How it works
-
-Three files, ~400 lines total.
-
-- **`src/types.ts`** — the data model. `Game` is a `head` node id plus a
-  `Record<string, Node>`; each `Node` carries an ordered list of `DialogLine`s,
-  the `Option`s the player can pick, and an optional input puzzle.
-- **`src/parser.ts`** — a single-pass parser that walks the script line-by-line.
-  Header directives populate the character / background registries; node bodies
-  push lines and options onto the current node. Image references are resolved
-  through `import.meta.glob`, so Vite bundles and fingerprints assets at build
-  time even though the script names them as plain strings.
-- **`src/main.ts`** — the runtime. On start it parses the script, dynamically
-  injects one sprite pair + one speech bubble per declared character, then drives
-  an async render loop: for each line it shows the right sprite, typewrites the
-  text, awaits a click, then advances. At node boundaries it renders option
-  buttons or an input box and `await`s the player's choice before walking to the
-  next node.
-
-The async-loop shape means control flow reads top-to-bottom — every "wait for
-something" is just an `await`.
-
----
-
-
-## Tech stack
-
-- TypeScript 5 (strict, no runtime deps)
-- Vite 7
-- ESLint 9 + `typescript-eslint`
